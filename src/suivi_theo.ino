@@ -8,7 +8,6 @@
 Pixy2 pixy;
 Servo motA;
 Servo servo_mot;
-char data;
 
 uint8_t max(uint8_t a, uint8_t b) { return a > b ? a : b; }
 

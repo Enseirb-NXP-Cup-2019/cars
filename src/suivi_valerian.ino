@@ -8,7 +8,6 @@
 Pixy2 pixy;
 Servo motA;
 Servo servo_mot;
-char data;
 
 uint8_t max(uint8_t a, uint8_t b) { return a > b ? a : b; }
 
@@ -44,9 +43,9 @@ void loop() {
   pixy.line.getAllFeatures();
   double sumAngles = 0;
   for (uint8_t i = 0; i < pixy.line.numVectors; i++) {
-    sumAngles += angle_servo(
-        pixy.line.vectors[bestLine].m_x0, pixy.line.vectors[bestLine].m_y0,
-        pixy.line.vectors[bestLine].m_x1, pixy.line.vectors[bestLine].m_y1);
+    sumAngles +=
+        angle_servo(pixy.line.vectors[i].m_x0, pixy.line.vectors[i].m_y0,
+                    pixy.line.vectors[i].m_x1, pixy.line.vectors[i].m_y1);
   }
   sumAngles /= pixy.line.numVectors;
   lastAngles[lastAngle_index] = sumAngles;
