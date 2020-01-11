@@ -16,10 +16,6 @@ double average(double* array, uint8_t size) {
   return sum / size;
 }
 double angled(double x0, double y0, double x1, double y1) {
-  /*if (y0 > y1) {
-    return angled(x1, y1, x0, y0);
-  }
-  return (atan2(y1 - y0, x1 - x0) + PI / 2) * 180.0 / PI;**/
   return angle_servo(x0, y0, x1, y1);
 }
 double norme(double x0, double y0, double x1, double y1) {
@@ -36,8 +32,14 @@ static Servo servo_mot;
 #define NB_FRAMES 10                  // Frames considering 30fps
 #define LONG_MIN_LIGNE_DROITE 40      // Pixels
 #define MAX_DECALAGE_CENTRE 8         // ??
-#define MAX_DEVIATION_LIGNE_DROITE 80 // Degrees
 #define MAX_DEVIATION 90              // Degrees
+#define Y_LIMIT_VIRAGE 25             // pixels
+#define DEVIATION_PRE_VIRAGE 60       // degrees
+
+#define ETAT_LIGNE_DROITE 0
+#define ETAT_VIRAGE 1
+#define ETAT_PRE_VIRAGE 2
+
 
 #define SCALEY(X) (X * 78.0 / 51.0)
 
@@ -65,21 +67,6 @@ void setup() {
 }
 
 double amortissement_reponse(double x) { return x * x / 180.0; }
-bool estSurLigneDroite() {
-  for (uint8_t i = 0; i < pixy.line.numVectors; i++) {
-    double angle =
-        angled(pixy.line.vectors[i].m_x0, SCALEY(pixy.line.vectors[i].m_y0),
-              pixy.line.vectors[i].m_x1, SCALEY(pixy.line.vectors[i].m_y1));
-     Serial.print(angle);
-     Serial.print(" ");
-    if (abs(angle - 90) > MAX_DEVIATION_LIGNE_DROITE) {
-      Serial.print("\n");
-      return false;
-    }
-  }
-  Serial.print("\n");
-  return true;
-}
 
 float coeff_dir(float x0, float x1, float y0, float y1) {
   return (y1 - y0) * 78.0 / 51.0 / (x1 - x0);
@@ -93,13 +80,11 @@ int angle_servo(int x0, int y0, int x1, int y1) {
 
     if (r <= -1) {
       int a = 10 + 80 * (1 - exp(1 + r));
-      // Serial.println(a);
       return a;
     }
 
     else if (r >= 1) {
       int b = 170 - 80 * (1 - exp(-r + 1));
-      // Serial.println(b);
       return b;
     }
 
@@ -137,52 +122,134 @@ double loopLigneDroite() {
     }
   }
   Serial.print("Norme Gauche:");
-  Serial.print(normeGauche);
-  Serial.print("\nNorme Droite:");
-  Serial.print(normeDroite);
+  Serial.println(normeGauche);
+  Serial.print("Norme Droite:");
+  Serial.println(normeDroite);
   double ratio = normeDroite / (normeGauche + normeDroite);
-  Serial.print("\nRatio:");
-  Serial.print(ratio);
-  return ratio * 180;
+  Serial.print("Ratio:");
+  Serial.println(ratio);
+  return ratio * 140 + 20;
+}
+
+int indiceVecteurPlusGrandeNorme(){
+  int index = 0;
+  double meilleurNorme = norme(pixy.line.vectors[0].m_x0, SCALEY(pixy.line.vectors[0].m_y0),
+              pixy.line.vectors[0].m_x1, SCALEY(pixy.line.vectors[0].m_y1));
+   for (uint8_t i = 0; i < pixy.line.numVectors; i++) {
+    double normeVecteur =
+        norme(pixy.line.vectors[i].m_x0, SCALEY(pixy.line.vectors[i].m_y0),
+              pixy.line.vectors[i].m_x1, SCALEY(pixy.line.vectors[i].m_y1));
+    if (normeVecteur > meilleurNorme) {
+      meilleurNorme = normeVecteur;
+      index = i;
+    } 
+  }
+  return index;
+}
+
+
+double moyenneAngles(){
+    double sumAngles = 0.;
+    for (uint8_t i = 0; i < pixy.line.numVectors; i++) {
+      sumAngles +=
+          angle_servo(pixy.line.vectors[i].m_x0, pixy.line.vectors[i].m_y0,
+                      pixy.line.vectors[i].m_x1, pixy.line.vectors[i].m_y1);
+    }
+  
+    sumAngles /= pixy.line.numVectors;
+    return sumAngles;
+}
+
+double deviationAngulairePlusImportante(){
+  double meilleureDeviation = 0.;
+  for (uint8_t i = 0; i < pixy.line.numVectors; i++) {
+    double angle =
+          angle_servo(pixy.line.vectors[i].m_x0, pixy.line.vectors[i].m_y0,
+                      pixy.line.vectors[i].m_x1, pixy.line.vectors[i].m_y1);
+    if(abs(angle - 90) > meilleureDeviation){
+      meilleureDeviation = abs(angle - 90);
+    }
+  }
+  return meilleureDeviation;
+}
+
+double angleDeDeviationPlusFaible(){
+  double meilleureDeviation = 90.;
+  double angleM = 0.;
+  for (uint8_t i = 0; i < pixy.line.numVectors; i++) {
+    double angle =
+          angle_servo(pixy.line.vectors[i].m_x0, pixy.line.vectors[i].m_y0,
+                      pixy.line.vectors[i].m_x1, pixy.line.vectors[i].m_y1);
+    if(abs(angle - 90) < meilleureDeviation){
+      meilleureDeviation = abs(angle - 90);
+      angleM = angle;
+    }
+  }
+  return angleM;
+}
+
+int getEtat(){
+  int i = indiceVecteurPlusGrandeNorme();
+  int angle = angle_servo(pixy.line.vectors[i].m_x0, pixy.line.vectors[i].m_y0,
+                    pixy.line.vectors[i].m_x1, pixy.line.vectors[i].m_y1) ;
+  int min_y = min(pixy.line.vectors[i].m_y0, pixy.line.vectors[i].m_y1);
+  if(abs(angle - 90) > 75 && min_y > Y_LIMIT_VIRAGE){
+    return ETAT_VIRAGE;
+  }
+  if(deviationAngulairePlusImportante() > DEVIATION_PRE_VIRAGE){
+    if(pixy.line.numVectors == 1)
+      return ETAT_VIRAGE;
+    else
+      return ETAT_PRE_VIRAGE;
+  }
+  return ETAT_LIGNE_DROITE;
+}
+
+double loopPreVirage(){
+  int max_y = 0;
+  int index = 0;
+  bool zero = true;
+  for(int i = 0; i < pixy.line.numVectors; i++){
+    if(pixy.line.vectors[i].m_y0 > max_y){
+      max_y = pixy.line.vectors[i].m_y0;
+      index = i;
+      zero = true;
+    }
+    if(pixy.line.vectors[i].m_y1 > max_y){
+      max_y = pixy.line.vectors[i].m_y1;
+      index = i;
+      zero = false;
+    }
+  }
+  int x = zero ? pixy.line.vectors[index].m_x0 : pixy.line.vectors[index].m_x1;
+  double dx = (x - 39) / 39.0;
+  return 90  + 60 * dx;
+  //return 90 - (90. - angleDeDeviationPlusFaible());
 }
 
 double loopVirages() {
-  double sumAngles = 0.;
-  for (uint8_t i = 0; i < pixy.line.numVectors; i++) {
-    double angle =
-        angle_servo(pixy.line.vectors[i].m_x0, pixy.line.vectors[i].m_y0,
-                    pixy.line.vectors[i].m_x1, pixy.line.vectors[i].m_y1);
-    double diff = abs(90 - angle);
-    if (diff <= MAX_DEVIATION) {
-      sumAngles += angle;
-    }
-    Serial.print("Angle vecteur:");
-    Serial.print(
-        angle_servo(pixy.line.vectors[i].m_x0, pixy.line.vectors[i].m_y0,
-                    pixy.line.vectors[i].m_x1, pixy.line.vectors[i].m_y1));
-    Serial.print("\n");
-  }
-
-  sumAngles /= pixy.line.numVectors;
+  double sumAngles = moyenneAngles();
   Serial.print("Moyenne:");
-  Serial.print(sumAngles);
-  Serial.print("\n");
+  Serial.println(sumAngles);
   return sumAngles;
 }
 
 void loop() {
   pixy.line.getAllFeatures();
   double ordre = 0.;
-
-  // Si on est sur une ligne droite ----------------------------------------
-  if (estSurLigneDroite()) {
-    Serial.print("Ligne droite:\n");
-    ordre = loopLigneDroite();
-  }
-  // Si on est pas sur une ligne droite ------------------------------------
-  else {
-    Serial.print("Virage:\n");
-    ordre = loopVirages();
+  switch(getEtat()){
+    case ETAT_VIRAGE:
+     Serial.println("Virages:");
+     ordre = loopVirages();
+     break;
+     case ETAT_PRE_VIRAGE:
+     Serial.println("Pre-Virage:");
+     ordre = loopPreVirage();
+     break;
+     default:
+     Serial.println("Ligne Droite:");
+     ordre = loopLigneDroite();
+     break;
   }
   Serial.print("\n\tordre:");
   Serial.print(ordre);
