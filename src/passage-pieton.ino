@@ -192,24 +192,29 @@ int get_state() {
   return STATE_STRAIGHT_LINE;
 }
 
-int same_coeff_dir(int n) {
+int same_coeff_dir(
+    int n) { // faire la methode de suppression des vecteurs extremes
   int numVectors = pixy.line.numVectors;
-  double vectors[numvectors];
+  double vectors_angles[numVectors];
+  double vectors_norm[numVectors];
   int iterator = 1;
   for (int i = 0; i < numVectors; i++) {
-    vectors[i] = coeff_dir(
+    vectors_angles[i] = vector_angle(
         pixy.line.vectors[i].m_x0, SCALE_Y(pixy.line.vectors[i].m_y0),
         pixy.line.vectors[i].m_x1, SCALE_Y(pixy.line.vectors[i].m_y1));
+    vectors_norm[i] =
+        norm(pixy.line.vectors[i].m_x0, SCALE_Y(pixy.line.vectors[i].m_y0),
+             pixy.line.vectors[i].m_x1, SCALE_Y(pixy.line.vectors[i].m_y1));
   }
   for (int i = 0; i < numVectors; i++) {
     for (int j = 0; j < numVectors; j++) {
-      if (vectors[i] == vectors[j]) {
+      if (abs(vectors_angles[i] - vectors_angles[j]) <= 20 &&
+          abs(vectors_norm[i] - vectors_norm[i]) <
+              seuil_diff) // definir seuil diff
         iterator++;
-      }
     }
-    if (iterator == n) {
+    if (iterator == n)
       return 1;
-    }
   }
   return 0;
 }
