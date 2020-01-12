@@ -208,9 +208,10 @@ int same_coeff_dir(
   }
   for (int i = 0; i < numVectors; i++) {
     for (int j = 0; j < numVectors; j++) {
-      if (abs(vectors_angles[i] - vectors_angles[j]) <= 20 &&
+      if (abs(vectors_angles[i] - vectors_angles[j]) <= seuil_angle &&
           abs(vectors_norm[i] - vectors_norm[i]) <
-              seuil_diff) // definir seuil diff
+              seuil_diff) // definir seuil_diff et seuil_angle
+                          // changer la methode avec calcul de rapport
         iterator++;
     }
     if (iterator == n)
