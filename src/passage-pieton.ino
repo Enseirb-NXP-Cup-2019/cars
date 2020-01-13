@@ -8,6 +8,7 @@
 #define PI 3.14159265
 
 uint8_t max(uint8_t a, uint8_t b) { return a > b ? a : b; }
+uint8_t min(uint8_t a, uint8_t b) { return a < b ? a : b; }
 double average(double* array, uint8_t size) {
   double sum = 0;
   for (size_t i = 0; i < size; i++) {
@@ -178,46 +179,66 @@ int get_state() {
       return STATE_PRE_TURN;
   }
   // detection zebra-cross
-  int debut = 0; // if we are not in state slow
-  if (pixy.line.numVectors >= 5 && same_coeff_dir(3) &&
-      debut == 0) { // verify that beginning of zebbra cross is detected with 3
-    debut = 1;
+  if (pixy.line.numVectors >= 5 && detecting_zebra_cross(3)) // verify that beginning of zebra cross is detected with 3
     return STATE_CROSS_BEGIN;
-  }
-  if (pixy.line.numVectors >= 6 && same_coeff_dir(4) && debut == 1) {
-    debut = 0;
+  if (pixy.line.numVectors >= 6 && detecting_zebra_cross(4))
     return STATE_CROSS_END;
-  }
+    
   // In any other case we are on a straight line
   return STATE_STRAIGHT_LINE;
 }
 
-int same_coeff_dir(
-    int n) { // faire la methode de suppression des vecteurs extremes
+//GET INDEX OF EXTREM VECTORS STORE IN INDEX_MIN AND INDEX_MAX
+void extrem_vectors(uint8_t *index_min, uint8_t *index_max){
+  *index_min = 0;
+  *index_max = 0;
+  int min_x = min(pixy.line.vectors[0].m_x0,pixy.line.vectors[0].m_x1);
+  int max_x = max(pixy.line.vectors[0].m_x0,pixy.line.vectors[0].m_x1);
+  int test_value;
+  for(uint8_t i = 1; i < pixy.line.numVectors; i++){
+    test_value = min(pixy.line.vectors[0].m_x0,pixy.line.vectors[0].m_x1);
+    if( test_value < min_x ){
+      min_x = test_value;
+      *index_min = i;
+    }
+    else{
+      test_value = max(pixy.line.vectors[0].m_x0,pixy.line.vectors[0].m_x1);
+      if( test_value > max_x){
+        max_x = test_value;
+        *index_max = i;
+      }
+    }
+  }
+}
+
+//DETECT IF THERE IS A ZEBRA CROSS WITH N BANDS
+
+bool detecting_zebra_cross(uint8_t n) { 
   int numVectors = pixy.line.numVectors;
-  double vectors_angles[numVectors];
-  double vectors_norm[numVectors];
-  int iterator = 1;
-  for (int i = 0; i < numVectors; i++) {
-    vectors_angles[i] = vector_angle(
+  double vectors_angles[n];
+  double vectors_norm[n];
+  uint8_t iterator = 0;
+  uint8_t index_max, index_min;
+  extrem_vectors(&index_min, &index_max);
+  for (uint8_t i = 0; i < numVectors && i != index_max && i != index_min; i++) {
+    vectors_angles[iterator] = vector_angle(
         pixy.line.vectors[i].m_x0, SCALE_Y(pixy.line.vectors[i].m_y0),
         pixy.line.vectors[i].m_x1, SCALE_Y(pixy.line.vectors[i].m_y1));
-    vectors_norm[i] =
+    vectors_norm[iterator] =
         norm(pixy.line.vectors[i].m_x0, SCALE_Y(pixy.line.vectors[i].m_y0),
              pixy.line.vectors[i].m_x1, SCALE_Y(pixy.line.vectors[i].m_y1));
+    iterator++;
   }
-  for (int i = 0; i < numVectors; i++) {
-    for (int j = 0; j < numVectors; j++) {
-      if (abs(vectors_angles[i] - vectors_angles[j]) <= seuil_angle &&
-          abs(vectors_norm[i] - vectors_norm[i]) <
-              seuil_diff) // definir seuil_diff et seuil_angle
-                          // changer la methode avec calcul de rapport
-        iterator++;
-    }
-    if (iterator == n)
-      return 1;
+  if(iterator != n || !vectors_norm[0])
+    return false;
+    
+  for (uint8_t i = 1; i < n; i++) {
+    double diff_norm = abs(vectors_norm[0] - vectors_norm[i]) / vectors_norm[0];
+    double diff_angle = abs(vectors_angles[0] - vectors_angles[i]);
+    if(diff_norm > 0.2 || diff_angle > 15) //0.2 and 15 are chosen values, have to be tested
+      return false;
   }
-  return 0;
+  return true;
 }
 
 // ORDERS ----------------------------------------------------------------------
