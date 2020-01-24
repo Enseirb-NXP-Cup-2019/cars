@@ -35,16 +35,17 @@ static Servo servo_motor;
 #define PRE_TURN_SHIFT 60.0      // degrees
 #define DELAY_BETWEEN_LOOPS 100  // milliseconds
 #define STRAIGHT_LINE_ANGLE 90.0 // degrees
+
 // STATES ------------------------------
 #define STATE_STRAIGHT_LINE 0
 #define STATE_TURN 1
 #define STATE_PRE_TURN 2
-#define STATE_CROSS_BEGIN 3
-#define STATE_CROSS_END 4
 
 // LOGIC GLOBALS ---------------------------------------------------------------
 static double last_orders[NB_FRAMES];
 static uint8_t index_last_order = 0;
+int initial_speed = 101;
+int zebra_cross = 0;
 // Scale the Y coordinates to have a 1:1 ratio with the X coordinates
 #define SCALE_Y(y) (y * 78.0 / 51.0)
 // SETUP -----------------------------------------------------------------------
@@ -61,7 +62,7 @@ void setup() {
 
   esc.write(0);
   delay(2000);
-  esc.write(100);
+  esc.write(initial_speed);
   // Fill last_orders with STRAIGHT_LINE_ANGLE
   for (int i = 0; i < NB_FRAMES; i++) {
     last_orders[i] = STRAIGHT_LINE_ANGLE;
@@ -124,6 +125,7 @@ double average_vector_angles() {
   return sum_angles;
 }
 double biggest_angular_shift() {
+   
   double best_shift = 0.;
   for (uint8_t i = 0; i < pixy.line.numVectors; i++) {
     double angle = vector_angle(
@@ -178,11 +180,6 @@ int get_state() {
     else
       return STATE_PRE_TURN;
   }
-  // detection zebra-cross
-  if (pixy.line.numVectors >= 5 && detecting_zebra_cross(3)) // verify that beginning of zebra cross is detected with 3
-    return STATE_CROSS_BEGIN;
-  if (pixy.line.numVectors >= 6 && detecting_zebra_cross(4))
-    return STATE_CROSS_END;
     
   // In any other case we are on a straight line
   return STATE_STRAIGHT_LINE;
@@ -194,33 +191,40 @@ void extrem_vectors(uint8_t *index_min, uint8_t *index_max){
   *index_max = 0;
   int min_x = min(pixy.line.vectors[0].m_x0,pixy.line.vectors[0].m_x1);
   int max_x = max(pixy.line.vectors[0].m_x0,pixy.line.vectors[0].m_x1);
-  int test_value;
+  double test_value;
   for(uint8_t i = 1; i < pixy.line.numVectors; i++){
-    test_value = min(pixy.line.vectors[0].m_x0,pixy.line.vectors[0].m_x1);
+   // Serial.println(i);
+    test_value = min(pixy.line.vectors[i].m_x0,pixy.line.vectors[i].m_x1);
+    
     if( test_value < min_x ){
       min_x = test_value;
       *index_min = i;
     }
     else{
-      test_value = max(pixy.line.vectors[0].m_x0,pixy.line.vectors[0].m_x1);
+      test_value = max(pixy.line.vectors[i].m_x0,pixy.line.vectors[i].m_x1);
       if( test_value > max_x){
         max_x = test_value;
         *index_max = i;
       }
+      
     }
   }
 }
 
-//DETECT IF THERE IS A ZEBRA CROSS WITH N BANDS
 
+//DETECT IF THERE IS A ZEBRA CROSS WITH N BANDS
 bool detecting_zebra_cross(uint8_t n) { 
   int numVectors = pixy.line.numVectors;
+  //Serial.println(numVectors);
   double vectors_angles[n];
   double vectors_norm[n];
   uint8_t iterator = 0;
-  uint8_t index_max, index_min;
+  uint8_t index_max, index_min; 
   extrem_vectors(&index_min, &index_max);
-  for (uint8_t i = 0; i < numVectors && i != index_max && i != index_min; i++) {
+ //Serial.println(index_max);
+  //Serial.println(index_min);
+  for (uint8_t i = 0; i < numVectors; i++) {
+    if( i != index_max && i != index_min){
     vectors_angles[iterator] = vector_angle(
         pixy.line.vectors[i].m_x0, SCALE_Y(pixy.line.vectors[i].m_y0),
         pixy.line.vectors[i].m_x1, SCALE_Y(pixy.line.vectors[i].m_y1));
@@ -228,19 +232,44 @@ bool detecting_zebra_cross(uint8_t n) {
         norm(pixy.line.vectors[i].m_x0, SCALE_Y(pixy.line.vectors[i].m_y0),
              pixy.line.vectors[i].m_x1, SCALE_Y(pixy.line.vectors[i].m_y1));
     iterator++;
+    }
   }
+  //Serial.println(iterator);
   if(iterator != n || !vectors_norm[0])
     return false;
     
   for (uint8_t i = 1; i < n; i++) {
+    //Serial.println(i);
+    //Serial.println(vectors_norm[i]);
     double diff_norm = abs(vectors_norm[0] - vectors_norm[i]) / vectors_norm[0];
+     
     double diff_angle = abs(vectors_angles[0] - vectors_angles[i]);
-    if(diff_norm > 0.2 || diff_angle > 15) //0.2 and 15 are chosen values, have to be tested
+   Serial.println(diff_angle);
+    if(diff_norm > 0.2)// || diff_angle > 20) //0.2 and 15 are chosen values, have to be tested
       return false;
   }
   return true;
 }
 
+//SET ZEBRA CROSS AREA
+void zebra_cross_area(){
+  // detection zebra-cross
+  if (pixy.line.numVectors >= 5 && detecting_zebra_cross(4)) // verify that beginning of zebra cross is detected with 3
+    zebra_cross = 1;
+  if (pixy.line.numVectors >= 6 && detecting_zebra_cross(3)) 
+    zebra_cross = 0;  // zebra cross area end is detected by the camera but the car is still in the area
+}
+
+double speed_order(){
+  if(zebra_cross == 2)
+    return initial_speed/2;
+  if(zebra_cross == 4){
+    zebra_cross = 0;
+    return initial_speed;
+  } 
+  return 0;
+}
+  
 // ORDERS ----------------------------------------------------------------------
 double order_straight_line() {
   double left_norm  = 0.;
@@ -277,7 +306,20 @@ double order_pre_turn() {
 // LOOP ------------------------------------------------------------------------
 void loop() {
   pixy.line.getAllFeatures();
+  //Serial.println(pixy.line.numVectors);
   double order = 0.;
+  double esc_order;
+  
+  // instructions if zebra cross is detected
+   zebra_cross_area();
+  //esc_order = speed_order();
+  //Serial.print(zebra_cross);
+  //Serial.print("-> Speed :");
+  //Serial.println(esc_order);
+  //if(esc_order != 0)// a revoir
+    //esc.write(esc_order);
+
+  
   switch (get_state()) {
   case STATE_TURN:
     Serial.println("[TURN]");
@@ -292,8 +334,19 @@ void loop() {
     order = order_straight_line();
     break;
   }
+
+  if(zebra_cross == 1){
+    Serial.println("DETECETED");
+    esc.write(100); 
+  }
+    if(zebra_cross == 0){
+    Serial.println("DETECETED");
+    esc.write(101); 
+  }
   Serial.print("-> Order:");
   Serial.println(order);
+  
+  
   //---------------------
   // après cette ligne on actualise le tableau des 10
   // dernières instructions, et on lance l'instruction
