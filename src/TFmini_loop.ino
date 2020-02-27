@@ -1,5 +1,5 @@
 #include <Arduino.h>
-//#include "TeensyThreads.h"
+#include "TeensyThreads.h"
 
 // Using supplied cable:
 // - Black = GND (connected to GND)
@@ -10,6 +10,8 @@
 // NOTE: for this sketch you need a microcontroller with additional serial ports beyond the one connected to the USB cable
 // This includes Arduino MEGA (use Serial1), Teensy (3.x) (use one of the available HW Serial connections)
 
+volatile int liDARval = 0;
+volatile int strength = 0;
 
 void setup()
 {
@@ -47,7 +49,7 @@ void setup()
 
 void loop()
 {
-   int liDARval = 0;
+   delay(10);  // Don't want to read too often as TFmini samples at 100Hz
 
    if(Serial1.available()>=9) // When at least 9 bytes of data available (expected number of bytes for 1 signal), then read
     {
@@ -65,9 +67,17 @@ void loop()
 
         t2 <<= 8;
         t2 += t1;
+        strength = t2;
         for(int i=0; i<3; i++)Serial1.read(); // byte 7, 8, 9 are ignored
       }
+    //  Serial.println("Distance =");
+     // Serial.println(liDARval);
+      //Serial.println("Strength =");
+     // Serial.println(strength);
+     if(liDARval<50){
+        Serial.println("Arret");
+       Serial.println(liDARval);
+       }
     }
-  delay(10);  // Don't want to read too often as TFmini samples at 100Hz
-  Serial.println(liDARval);
+
 }

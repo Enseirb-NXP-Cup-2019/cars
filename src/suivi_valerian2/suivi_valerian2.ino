@@ -35,15 +35,15 @@ static Servo servo_motor;
 // FILE GLOBALS ----------------------------------------------------------------
 #define NB_FRAMES 16             // Frames considering 30fps
 #define TURN_Y_LIMIT 20          // pixels
-#define TURN_SHIFT 75.0          // degrees
+#define TURN_SHIFT 85.0          // degrees
 #define PRE_TURN_SHIFT 60.0      // degrees
 #define DELAY_BETWEEN_LOOPS 30  // milliseconds
 #define STRAIGHT_LINE_ANGLE 90.0 // degrees
 #define MAX_ROTATION_ORDER 180.0 // degrees
 #define MIN_ROTATION_ORDER 0.0 //degrees
 #define TURN_SPEED 1610
-#define PRE_TURN_SPEED 1610
-#define STRAIGHT_LINE_SPEED 1610
+#define PRE_TURN_SPEED 1612
+#define STRAIGHT_LINE_SPEED 1612
 // STATES ------------------------------
 #define STATE_STRAIGHT_LINE 0
 #define STATE_TURN 1
@@ -87,7 +87,7 @@ void calibrage(){
     delay(50);
     Serial.println(1500+i);
   }
-  }
+}
 
 // Vectors Utils ---------------------------------------------------------------
 /**
@@ -229,19 +229,25 @@ double order_straight_line() {
   double ratio = right_norm / (left_norm + right_norm);
   Serial.print("Ratio:");
   Serial.println(ratio);
-  esc.write(STRAIGHT_LINE_SPEED);
-  return ratio * 140 + 20;
+  if(zebra_cross == 0){
+    esc.write(STRAIGHT_LINE_SPEED);
+  }
+  return ratio * 135 + 20;
 }
-double order_turn() {  
-  esc.write(TURN_SPEED);
-  return average_vector_angles(); 
+double order_turn() { 
+  if(zebra_cross == 0){
+    esc.write(TURN_SPEED);
+    }
+  return 0.7 * (average_vector_angles() - 90) + 90; 
 }
 double order_pre_turn() {
   int x, y;
   highest_point(&x, &y);
   double dx = (x - 39) / 39.0;
-  esc.write(PRE_TURN_SPEED);
-  return STRAIGHT_LINE_ANGLE + 60 * dx;
+  if(zebra_cross == 0){
+    esc.write(PRE_TURN_SPEED);
+  }
+  return STRAIGHT_LINE_ANGLE + 40 * dx;
 }
 
 
@@ -345,9 +351,11 @@ void set_zebra_cross_area(){
 void zebra_order(){
   set_zebra_cross_area();
   if(zebra_cross == 1)
-    esc.write(1600);
+  //Serial.print("SLOW");
+   esc.write(1608);
   if(zebra_cross == 0){
-    esc.write(1610);
+    //Serial.print("SPEED");
+    esc.write(1612);
   }
 }
 
