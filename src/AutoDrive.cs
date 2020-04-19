@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System;
 using System.Runtime.InteropServices;
 using UnityEngine.UI;
@@ -127,7 +127,6 @@ public class AutoDrive : MonoBehaviour
             if (left < LEFTSEGMENT) correction -= maxAngle * (LEFTSEGMENT - left);
             else if (left > LEFTSEGMENT) correction += maxAngle * (left - LEFTSEGMENT);
             // Scaling factor from pixels to angle (hand tuned)
-            angle = correction*0.01f;
 
             posCar = car.transform.position;
             posCube = cube.transform.position;
@@ -138,19 +137,29 @@ public class AutoDrive : MonoBehaviour
             tamp = posCar;
             //vecteur voiture/obstacle
             vecCubeCar = posCar - posCube;
-
+            vecCarCube = posCube - posCar;
 
             print(speedCar);
         //    print(vecCubeCar);
-            // Comparer vecteur speed et CubeCar si même quasi même direction et sens = voiture fonce sur l'obstacle
-
+            // Comparer vecteur speed et CubeCar si quasi même direction et sens = voiture fonce sur l'obstacle
+            if()
             //calcul du coeff de colinéarité
             coeff = (speedCar.x * vecCubeCar.z) - (speedCar.z * vecCubeCar.x);
         //    print(coeff);
+            angleCal=Math.Acos((speedCar.x*vecCarCube.x+speedCar.z*vecCarCube.z)/(Math.Sqrt(Math.Pow(speedCar.x, 2)+Math.Pow(speedCar.z, 2)) * Math.Sqrt(Math.Pow(vecCarCube.x, 2) +Math.Pow(vecCarCube.z, 2))));
+            angleCompar=Math.Acos((speedCar.x*1+speedCar.z*0)/Math.Sqrt(Math.Pow(speedCar.x, 2)+Math.Pow(speedCar.z, 2)));
+            angleCompar2=Math.Acos((1*vecCarCube.x+0*vecCarCube.z)/sqrt(Math.Math.Pow(vecCarCube.x, 2) +Math.Pow(vecCarCube.z, 2)));
+            epsilon = 0.01;
 
-            if(coeff <1 /*checker le sens pour voir si elle va vers l'obstacle*/){
-              // checker la distance 
+            if (angleCompar - angleCompar2 < 0) {
+              sens = -1;
+            } else if (angleCompar2 - angleCompar < 0) {
+              sens = 1;
             }
+            if(Math.Abs(posCar.x-posCube.x+posCar.z-posCube.z) < 10 && Math.Abs(posCar.x-posCube.x+posCar.z-posCube.z) > 1 && angle<0.25) {
+              correction += maxAngle/2 * sens;
+            } //si l'angle est trop faible, on tourne du coté ou on est le moins orienté vers le cube.
+            angle = correction*0.01f;
 
             // Find the gear for the car
             if (Mathf.Floor(correction) > 10) gear = 1;
