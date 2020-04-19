@@ -141,23 +141,20 @@ public class AutoDrive : MonoBehaviour
 
             print(speedCar);
         //    print(vecCubeCar);
-            // Comparer vecteur speed et CubeCar si quasi même direction et sens = voiture fonce sur l'obstacle
-            if()
-            //calcul du coeff de colinéarité
-            coeff = (speedCar.x * vecCubeCar.z) - (speedCar.z * vecCubeCar.x);
+            // Comparer vecteur speed et CarCube si quasi même direction et sens = voiture fonce sur l'obstacle
         //    print(coeff);
             angleCal=Math.Acos((speedCar.x*vecCarCube.x+speedCar.z*vecCarCube.z)/(Math.Sqrt(Math.Pow(speedCar.x, 2)+Math.Pow(speedCar.z, 2)) * Math.Sqrt(Math.Pow(vecCarCube.x, 2) +Math.Pow(vecCarCube.z, 2))));
             angleCompar=Math.Acos((speedCar.x*1+speedCar.z*0)/Math.Sqrt(Math.Pow(speedCar.x, 2)+Math.Pow(speedCar.z, 2)));
             angleCompar2=Math.Acos((1*vecCarCube.x+0*vecCarCube.z)/sqrt(Math.Math.Pow(vecCarCube.x, 2) +Math.Pow(vecCarCube.z, 2)));
-            epsilon = 0.01;
 
             if (angleCompar - angleCompar2 < 0) {
               sens = -1;
             } else if (angleCompar2 - angleCompar < 0) {
               sens = 1;
             }
-            if(Math.Abs(posCar.x-posCube.x+posCar.z-posCube.z) < 10 && Math.Abs(posCar.x-posCube.x+posCar.z-posCube.z) > 1 && angle<0.25) {
+            if(Math.Abs(posCar.x-posCube.x+posCar.z-posCube.z) < 10 && Math.Abs(posCar.x-posCube.x+posCar.z-posCube.z) > 1 && angle<1) {
               correction += maxAngle/2 * sens;
+              angle = correction*0.05f;
             } //si l'angle est trop faible, on tourne du coté ou on est le moins orienté vers le cube.
             angle = correction*0.01f;
 
