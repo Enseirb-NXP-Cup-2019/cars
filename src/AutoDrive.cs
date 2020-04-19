@@ -52,6 +52,12 @@ public class AutoDrive : MonoBehaviour
     public Vector3 tamp;
     public Vector3 speedCar;  // même si on a besoin que de 2 coordonnées Vector3  c'est pour avoir le même plan
     public Vector3 vecCubeCar;
+    public Vector3 vecCarCube;
+    public double angleCal;
+    public double angleCompar;
+    public double angleCompar2;
+    public float sens;
+    public double epsilon;
     public float coeff;
 
     // Called once, at initialization of the scene
@@ -142,13 +148,13 @@ public class AutoDrive : MonoBehaviour
             print(speedCar);
         //    print(vecCubeCar);
             // Comparer vecteur speed et CubeCar si quasi même direction et sens = voiture fonce sur l'obstacle
-            if()
+          //  if()
             //calcul du coeff de colinéarité
             coeff = (speedCar.x * vecCubeCar.z) - (speedCar.z * vecCubeCar.x);
         //    print(coeff);
             angleCal=Math.Acos((speedCar.x*vecCarCube.x+speedCar.z*vecCarCube.z)/(Math.Sqrt(Math.Pow(speedCar.x, 2)+Math.Pow(speedCar.z, 2)) * Math.Sqrt(Math.Pow(vecCarCube.x, 2) +Math.Pow(vecCarCube.z, 2))));
             angleCompar=Math.Acos((speedCar.x*1+speedCar.z*0)/Math.Sqrt(Math.Pow(speedCar.x, 2)+Math.Pow(speedCar.z, 2)));
-            angleCompar2=Math.Acos((1*vecCarCube.x+0*vecCarCube.z)/sqrt(Math.Math.Pow(vecCarCube.x, 2) +Math.Pow(vecCarCube.z, 2)));
+            angleCompar2=Math.Acos((1*vecCarCube.x+0*vecCarCube.z)/Math.Sqrt(Math.Pow(vecCarCube.x, 2) +Math.Pow(vecCarCube.z, 2)));
             epsilon = 0.01;
 
             if (angleCompar - angleCompar2 < 0) {
