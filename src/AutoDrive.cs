@@ -162,8 +162,10 @@ public class AutoDrive : MonoBehaviour
               correction += maxAngle/2 * sens;
               angle = correction*0.05f;
             } //si l'angle est trop faible, on tourne du coté ou on est le moins orienté vers le cube.
-            angle = correction*0.01f;
-
+	    
+            else{
+              angle = correction*0.01f;
+            }
             // Find the gear for the car
             if (Mathf.Floor(correction) > 10) gear = 1;
             else gear=2;
