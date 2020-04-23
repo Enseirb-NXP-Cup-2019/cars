@@ -1,3 +1,7 @@
+//Ce code est le code principal de suivi de piste.
+// Il contient une partie intégré pour la détection de
+// marquage au sol opérationnelle à moitié
+
 #include <Pixy2.h>
 #include <Servo.h>
 #include <math.h>
