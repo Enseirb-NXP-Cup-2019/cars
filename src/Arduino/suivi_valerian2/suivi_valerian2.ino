@@ -251,7 +251,7 @@ double order_pre_turn() {
 }
 
 
-//DETECTING LINE
+//DETECTING LINE //not operating
 int depart_line(){
  double vectors_norm[2];
  int iterator = 0;
@@ -342,10 +342,10 @@ bool detecting_zebra_cross(uint8_t n) {
 //SET ZEBRA CROSS AREA
 void set_zebra_cross_area(){
   // detection zebra-cross
-  if (pixy.line.numVectors >= 5 && detecting_zebra_cross(4)) // verify that beginning of zebra cross is detected with 3
+  if (pixy.line.barcodes || detecting_zebra_cross(4)) // verify that beginning of zebra cross is detected
     zebra_cross = 1;
-  if (pixy.line.numVectors >= 6 && detecting_zebra_cross(3)) 
-    zebra_cross = 0;  // zebra cross area end is detected by the camera but the car is still in the area
+  if (detecting_zebra_cross(3)) 
+    zebra_cross = 0;  //end of zebra cross is detected
 }
 
 void zebra_order(){
@@ -363,14 +363,15 @@ void zebra_order(){
 void loop() {
   pixy.line.getAllFeatures();
   double order = 0.;
-  zebra_order();
   switch (get_state()) {
   case STATE_TURN:
     Serial.println("[TURN]");
+    //zebra_order(); //to be decomment if using zebra cross detection
     order = order_turn();
     break;
   case STATE_PRE_TURN:
     Serial.println("[PRE-TURN]");
+    //zebra_order(); //to be decomment if using zebra cross detection
     order = order_pre_turn();
     break;
   default:
