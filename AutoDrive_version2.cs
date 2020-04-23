@@ -41,7 +41,7 @@ public class AutoDrive : MonoBehaviour
     // The y of the line of pixel observed, in the array of pixels. Its equation is y=LINE1
     private const int LINE1 = SIZEVIEW * SIZEVIEW / 2;
   ///  private const int LINE2 = (SIZEVIEW * SIZEVIEW / 4);
-    private const int LINE2 = LINE1 + 2*SIZEVIEW;
+    private const int LINE2 = LINE1 + 2*SIZEVIEW; //the second line we inspect
     // x of leftmost pixel in the line when the car is in the middle of the lane
     private const int LEFTSEGMENT = 17; 
     // Size of the lane for the observed line
@@ -103,7 +103,7 @@ public class AutoDrive : MonoBehaviour
         }
         if (i < SIZEVIEW)
         {
-            if (j < SIZEVIEW && Math.Abs(i - j) < 1)
+            if (j < SIZEVIEW && Math.Abs(i - j) < 1) // if bordure line detected in front of, turn left. Specific to the circuit
             {
                 correction -= maxAngle*100;
             }
