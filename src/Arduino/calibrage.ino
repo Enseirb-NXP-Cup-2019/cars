@@ -19,7 +19,7 @@ void setup() {
  * Main function
  */
 void loop() {
-  
+
     if (Serial.available()) {
         data = Serial.read();
 
@@ -50,39 +50,15 @@ void loop() {
 }
 
 /**
- * Test function sending angle to the ESCs from 0 to 180 degrees
+ * Test function sending throttle to the ESC for a slow speed
  */
 void test()
-{ /*
-  esc.write(0);
-  delay(200);
-  if (Serial.available() > 0)
-  {
-    int vitesse = Serial.parseInt();
-    esc.write(vitesse);
-  }
-  
-  */
-  /*  for (int i=0; i<=180; i++) {
-        Serial.print("Speed = ");
-        Serial.println(i);
-
-        esc.write(i);
-
-
-        delay(200);
-    }
-
-    Serial.println("STOP");*/
-        delay(200);
+{
     esc.write(0);
     delay(200);
     esc.write(103);
     delay(3000);
-  
     esc.write(0);
-    delay(42000);
-  
 }
 
 /**
